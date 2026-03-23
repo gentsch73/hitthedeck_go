@@ -294,7 +294,7 @@ func (g *Game) tick() {
 					p.Inv[gi.Type]++; g.items=append(g.items[:i],g.items[i+1:]...)}}
 			if inp.Act&&!p.ActP { p.ActP=true
 				if math.Hypot(p.CX-p.BX,p.CZ-p.BZ)<EMBARK {
-					p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0;p.Mining=false
+					p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0;p.Mining=false;p.Sails=0 // docked, press 2/3 to sail
 				} else {
 					for oid,op := range g.players {
 						if oid==p.ID||!op.Alive||op.Sinking>0{continue}
@@ -408,6 +408,8 @@ func (g *Game) handleWS(w http.ResponseWriter, r *http.Request) {
 					p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("Sold %d %s for %dg",sell,od.Name,sell*od.Value)})}}
 		case "mine":
 			if !p.OnBoat&&!p.Mining{land:=onLand(p.CX,p.CZ);if land!=nil&&land.Ore!=""{p.Mining=true;p.MineT=now()}}
+		case "critterGold":
+			p.Gold+=5; p.Send(map[string]interface{}{"t":"msg","v":"+5g critter!"})
 		case "buyHouse":
 			var hm struct{Slot int;Type string};json.Unmarshal(data,&hm)
 			if hm.Slot>=0&&hm.Slot<len(houseSlots){hs:=houseSlots[hm.Slot];hd,ok:=HouseDefs[hm.Type]
