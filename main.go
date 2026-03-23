@@ -270,20 +270,22 @@ func (g *Game) tick() {
 					if name=="gold"{p.Gold+=qty;p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("+%dg loot!",qty)})} else {p.Cargo[name]+=qty}
 				} else {p.Inv[gi.Type]++}
 				g.items=append(g.items[:i],g.items[i+1:]...)}}
-			if inp.Act{shore:=nearShore(p.BX,p.BZ)
-				if shore!=nil{if p.EmbarkT==0{p.EmbarkT=n;p.Send(map[string]interface{}{"t":"msg","v":"Disembarking...3s"})} else if n-p.EmbarkT>=3000{
+			// Disembark: E toggles countdown
+			if inp.Act&&!p.ActP{p.ActP=true
+				if p.EmbarkT>0{p.EmbarkT=0;p.Send(map[string]interface{}{"t":"msg","v":"Cancelled"})} else {
+					shore:=nearShore(p.BX,p.BZ);if shore!=nil{p.EmbarkT=n;p.Send(map[string]interface{}{"t":"msg","v":"Disembarking 3..."})}}}
+			if !inp.Act{p.ActP=false}
+			if p.EmbarkT>0{elapsed:=n-p.EmbarkT;rem:=3-int(elapsed/1000)
+				if rem>0&&int(elapsed/1000)!=int((elapsed-50)/1000){p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("Disembarking %d...",rem)})}
+				if elapsed>=3000{shore:=nearShore(p.BX,p.BZ);if shore!=nil{
 					a:=math.Atan2(p.BX-shore.X,p.BZ-shore.Z);p.CX=shore.X+math.Sin(a)*(shore.R-6)
-					p.CZ=shore.Z+math.Cos(a)*(shore.R-6);p.CY=3;p.CR=a;p.OnBoat=false;p.Swim=false;p.Mining=false;p.EmbarkT=0}}
-			}else{p.EmbarkT=0}
+					p.CZ=shore.Z+math.Cos(a)*(shore.R-6);p.CY=3;p.CR=a;p.OnBoat=false;p.Swim=false;p.Mining=false};p.EmbarkT=0}}
 		}else{
-			// Character faces aim direction
-			p.CR=math.Atan2(p.AX-p.CX,p.AZ-p.CZ)
-			// WASD relative to aim direction
+			// Classic controls: A/D turn, W/S move forward/back
+			if inp.Left{p.CR+=0.07};if inp.Right{p.CR-=0.07}
 			var mx,mz float64
-			if inp.Fwd{mx+=math.Sin(p.CR)*WALK;mz+=math.Cos(p.CR)*WALK}
-			if inp.Back{mx-=math.Sin(p.CR)*WALK*0.6;mz-=math.Cos(p.CR)*WALK*0.6}
-			if inp.Left{mx+=math.Cos(p.CR)*WALK*0.8;mz-=math.Sin(p.CR)*WALK*0.8}
-			if inp.Right{mx-=math.Cos(p.CR)*WALK*0.8;mz+=math.Sin(p.CR)*WALK*0.8}
+			if inp.Fwd{mx=math.Sin(p.CR)*WALK;mz=math.Cos(p.CR)*WALK}
+			if inp.Back{mx=-math.Sin(p.CR)*WALK*0.5;mz=-math.Cos(p.CR)*WALK*0.5}
 			nx,nz:=p.CX+mx,p.CZ+mz
 			// Rock collision
 			if ob:=hitRock(nx,nz,1);ob!=nil{a:=math.Atan2(nx-ob.X,nz-ob.Z);nx=ob.X+math.Sin(a)*(ob.R+1.5);nz=ob.Z+math.Cos(a)*(ob.R+1.5)}
@@ -306,16 +308,18 @@ func (g *Game) tick() {
 					if name=="gold"{p.Gold+=qty;p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("+%dg loot!",qty)})} else {p.Cargo[name]+=qty}
 				} else {p.Inv[gi.Type]++}
 				g.items=append(g.items[:i],g.items[i+1:]...)}}
-			if inp.Act{
-				if math.Hypot(p.CX-p.BX,p.CZ-p.BZ)<EMBARK{
-					if p.EmbarkT==0{p.EmbarkT=n;p.Send(map[string]interface{}{"t":"msg","v":"Boarding...3s"})} else if n-p.EmbarkT>=3000{
-						p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0;p.Mining=false;p.Sails=0;p.EmbarkT=0}}else{
-					// Instant board other player's ship
-					for oid,op:=range g.players{if oid==p.ID||!op.Alive||op.Sinking>0{continue}
-						if math.Hypot(p.CX-op.BX,p.CZ-op.BZ)<EMBARK{if g.crewCount(oid)<Ships[op.Ship].Crew-1{
-							p.BoardedOn=oid;p.OnBoat=false;p.Swim=false;p.DX=0;p.DZ=0;p.CY=2.5;break}}}
-					p.EmbarkT=0}
-			}else{p.EmbarkT=0}
+			// Embark: E toggles countdown
+			if inp.Act&&!p.ActP{p.ActP=true
+				if p.EmbarkT>0{p.EmbarkT=0;p.Send(map[string]interface{}{"t":"msg","v":"Cancelled"})} else {
+					if math.Hypot(p.CX-p.BX,p.CZ-p.BZ)<EMBARK{p.EmbarkT=n;p.Send(map[string]interface{}{"t":"msg","v":"Boarding 3..."})} else {
+						// Instant board other player's ship (no countdown)
+						for oid,op:=range g.players{if oid==p.ID||!op.Alive||op.Sinking>0{continue}
+							if math.Hypot(p.CX-op.BX,p.CZ-op.BZ)<EMBARK{if g.crewCount(oid)<Ships[op.Ship].Crew-1{
+								p.BoardedOn=oid;p.OnBoat=false;p.Swim=false;p.DX=0;p.DZ=0;p.CY=2.5;break}}}}}}
+			if !inp.Act{p.ActP=false}
+			if p.EmbarkT>0{elapsed:=n-p.EmbarkT;rem:=3-int(elapsed/1000)
+				if rem>0&&int(elapsed/1000)!=int((elapsed-50)/1000){p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("Boarding %d...",rem)})}
+				if elapsed>=3000{p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0;p.Mining=false;p.Sails=0;p.EmbarkT=0}}
 		}
 	}
 	// Cannonballs
