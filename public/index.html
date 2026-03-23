@@ -124,7 +124,7 @@ function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
     case 'init':myId=msg.id;MAP=msg.map;SD=msg.ships||{};GD=msg.goods||{};OD=msg.ores||{};HD=msg.houseDefs||{};
       if(msg.state)stBuf=[msg.state];ISL=msg.islands||[];MISL=msg.mineIslands||[];SAFE=msg.safeIsland;ALL=[SAFE,...ISL,...MISL];ROCKS=msg.rocks||[];hSlots=msg.houseSlots||[];
       if(scene){for(const i of ALL)buildIsland(i);buildRocks();buildHouseMeshes()}
-      if(msg.spawnX!==undefined&&camera){const r=msg.spawnR||0;camera.position.set(msg.spawnX-Math.sin(r)*50,30,msg.spawnZ-Math.cos(r)*50);camera.lookAt(msg.spawnX,3,msg.spawnZ)}
+      if(msg.spawnX!==undefined){window._sp={x:msg.spawnX,z:msg.spawnZ,r:msg.spawnR||0};if(camera){camera.position.set(msg.spawnX-Math.sin(msg.spawnR||0)*60,80,msg.spawnZ-Math.cos(msg.spawnR||0)*60);camera.lookAt(msg.spawnX,5,msg.spawnZ)}}
       if(playing)send({t:'setName',v:document.getElementById('nin').value.trim()||'Pirate'});break;
     case 's':pushState(msg.d);break;
     case 'left':rmEnt(msg.id);break;
@@ -141,8 +141,10 @@ function go(){document.getElementById('overlay').style.display='none';
   playing=true;initThree();send({t:'setName',v:document.getElementById('nin').value.trim()||'Pirate'});animate()}
 
 function initThree(){
-  scene=new THREE.Scene();scene.fog=new THREE.Fog(0x4a8aaf,300,1500);
-  camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,1,2000);camera.position.set(0,50,0);
+  scene=new THREE.Scene();scene.fog=new THREE.Fog(0x4a8aaf,500,3000);
+  camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,1,4000);
+  if(window._sp){const s=window._sp;camera.position.set(s.x-Math.sin(s.r)*60,80,s.z-Math.cos(s.r)*60);camera.lookAt(s.x,5,s.z)}
+  else{camera.position.set(700,80,700);camera.lookAt(0,0,0)}
   renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
   renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setClearColor(0x6aafcf);
   document.body.appendChild(renderer.domElement);clock=new THREE.Clock();
@@ -298,7 +300,7 @@ function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime()
   const cba=GS.cb||[];for(let i=0;i<cba.length;i++){const m=getCB(i);m.visible=true;m.position.set(cba[i].x,cba[i].y,cba[i].z)}for(let i=cba.length;i<cbPool.length;i++)cbPool[i].visible=false;
   updateGI(GS.gi);
   if(me&&ents[myId]){const e=ents[myId];let tgt,rot,cd,ch;
-    if(me.ob){tgt=e.boat.position;rot=e.boat.rotation.y;cd=50;ch=28}else{tgt=e.char.position;rot=e.char.rotation.y;cd=24;ch=16}
+    if(me.ob){tgt=e.boat.position;rot=e.boat.rotation.y;cd=55;ch=35}else{tgt=e.char.position;rot=e.char.rotation.y;cd=28;ch=20}
     let cR=rot,cP=0;if(freeLook){cR=rot+flY;cP=flP}
     camera.position.x+=(tgt.x-Math.sin(cR)*cd-camera.position.x)*.07;camera.position.z+=(tgt.z-Math.cos(cR)*cd-camera.position.z)*.07;
     camera.position.y+=(tgt.y+ch+cP*25-camera.position.y)*.07;camera.lookAt(tgt.x,tgt.y+4+cP*12,tgt.z)}
