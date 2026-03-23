@@ -186,8 +186,9 @@ function initThree(){
   renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
   renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setClearColor(0x7ab8cf);
   document.body.appendChild(renderer.domElement);clock=new THREE.Clock();
-  scene.add(new THREE.AmbientLight(0xffffff,.5));const sun=new THREE.DirectionalLight(0xfff0d0,1);sun.position.set(500,600,300);scene.add(sun);
-  scene.add(new THREE.HemisphereLight(0x87ceeb,0x3a7a5a,.25));
+  scene.add(new THREE.AmbientLight(0xffffff,.7));const sun=new THREE.DirectionalLight(0xfff0d0,1.2);sun.position.set(400,800,300);scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0x87ceeb,0x4a9a6a,.4));
+  const fill=new THREE.DirectionalLight(0xaaccff,.3);fill.position.set(-300,400,-200);scene.add(fill);
   const waterTex=new THREE.TextureLoader().load('/water.jpg');waterTex.wrapS=waterTex.wrapT=THREE.RepeatWrapping;waterTex.repeat.set(80,80);
   water=new THREE.Mesh(new THREE.PlaneGeometry(12000,12000,50,50),new THREE.MeshPhongMaterial({map:waterTex,transparent:true,opacity:.92,shininess:60,specular:0x2288aa}));
   water.rotation.x=-Math.PI/2;scene.add(water);
@@ -200,7 +201,7 @@ function initThree(){
     if(e.code==='Digit1')send({t:'setSails',v:0});if(e.code==='Digit2')send({t:'setSails',v:1});if(e.code==='Digit3')send({t:'setSails',v:2});
     if(e.code==='KeyB')togglePanel();if(e.code==='KeyF')send({t:'mine'});if(e.code==='KeyG')send({t:'deposit'});if(e.code==='Space')e.preventDefault()});
   window.addEventListener('keyup',e=>{keys[e.code]=false});window.addEventListener('blur',()=>{keys={};freeLook=false});
-  window.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;if(freeLook){flY-=e.movementX*.003;flP=Math.max(-.3,Math.min(.6,flP-e.movementY*.003))}});
+  window.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;if(freeLook&&!panelOpen){flY-=e.movementX*.003;flP=Math.max(-.4,Math.min(.5,flP-e.movementY*.003))}});
   window._lft=window._lft||0;
   window.addEventListener('mousedown',e=>{if(e.button===0&&!panelOpen&&playing){
     const GS=getIS();const me=GS?.p[myId];
@@ -235,7 +236,10 @@ function renderTab(){
       const inv=me?.inv||{};if(Object.keys(inv).length){h+=`<div style="margin-top:6px"><b>Sell Ores:</b>`;for(const[o,q]of Object.entries(inv)){if(q<=0)continue;h+=`<div class="trow"><span>${OD[o]?.icon||''} ${o} x${q}</span><button class="btn btn-r" onclick="send({t:'sellOre',ore:'${o}',qty:999});setTimeout(renderTab,300)">Sell</button></div>`}h+=`</div>`}
       h+=`</div>`;el.innerHTML=h}else el.innerHTML='<p style="opacity:.4">Go to an island to trade</p>'}
     else el.innerHTML='<p style="opacity:.4">Not near a trade island</p>'}
-  else if(pTab==='housing'){let h=`<div class="tsec"><h3>Haven Island Housing</h3>`;
+  else if(pTab==='housing'){
+    const inSZ=SAFE&&me&&Math.hypot((me.ob?me.bx:me.cx)-SAFE.x,(me.ob?me.bz:me.cz)-SAFE.z)<SAFE.r+30;
+    if(!inSZ){el.innerHTML='<p style="opacity:.5;padding:20px">You must be at Haven Island (Safe Zone) to manage housing.</p>';} else {
+    let h=`<div class="tsec"><h3>Haven Island Housing</h3>`;
     for(let i=0;i<hSlots.length;i++){const hs=hSlots[i];
       if(hs.owner===myId){h+=`<div class="sc"><div class="si"><h3>Your ${hs.type||'house'}</h3><p>Slot ${i+1}</p></div><span>
         <button class="btn btn-b" onclick="send({t:'getHS',slot:${i}});setTimeout(renderTab,300)">View Storage</button>
@@ -247,7 +251,7 @@ function renderTab(){
         for(const[ht,hd]of Object.entries(HD))h+=`<button class="btn btn-y" onclick="send({t:'buyHouse',slot:${i},type:'${ht}'});setTimeout(renderTab,300)">${hd.name} ${hd.price}g</button> `;
         h+=`</span></div>`}
       else h+=`<div class="sc"><div class="si"><h3>Slot ${i+1}: Owned</h3></div></div>`}
-    h+=`</div>`;el.innerHTML=h}
+    h+=`</div>`;el.innerHTML=h}}
   else if(pTab==='craft'){
     let h=`<div class="tsec"><h3>⚒ Crafting</h3><p style="opacity:.5;font-size:11px;margin-bottom:8px">Combine materials to create upgrades</p>`;
     const allMats={...(me?.inv||{}), ...(me?.cargo||{}), ...(me?.ci||{})};
@@ -323,7 +327,12 @@ function mkTrade(){const g=new THREE.Group();g.add(M(new THREE.BoxGeometry(6,2.5
 function mkChar(me){
   if(glbChar){const g=glbChar.clone();g.traverse(c=>{if(c.isMesh&&me){c.material=c.material.clone()}});return g}
   const g=new THREE.Group(),c=me?0x2e86c1:0xc0392b;g.add(M(new THREE.BoxGeometry(.9,1.5,.6),c,[0,2.3,0]));g.add(M(new THREE.SphereGeometry(.38,6,6),0xf0c090,[0,3.4,0]));g.add(M(new THREE.CylinderGeometry(.25,.45,.45,6),0x1a1a1a,[0,3.9,0]));for(const s of[-.22,.22]){const l=M(new THREE.BoxGeometry(.3,1,.35),0x4a3520,[s,.9,0]);l.name=s<0?'lL':'lR';g.add(l)}for(const s of[-.6,.6]){const a=M(new THREE.BoxGeometry(.25,1,.25),c,[s,2.3,0]);a.name=s<0?'aL':'aR';g.add(a)}return g}
-function mkTag(n,me){const c=document.createElement('canvas');c.width=256;c.height=40;const x=c.getContext('2d');x.fillStyle=me?'rgba(46,134,193,.65)':'rgba(0,0,0,.5)';x.beginPath();x.roundRect(4,2,248,36,5);x.fill();x.fillStyle='#fff';x.font='bold 18px sans-serif';x.textAlign='center';x.fillText(n,128,28);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));s.scale.set(12,3,1);return s}
+function mkTag(n,me){const c=document.createElement('canvas');c.width=300;c.height=48;const x=c.getContext('2d');
+  x.fillStyle=me?'rgba(30,100,160,.75)':'rgba(180,40,40,.65)';
+  x.beginPath();x.roundRect(8,4,284,40,12);x.fill();
+  x.strokeStyle=me?'rgba(100,180,255,.4)':'rgba(255,100,100,.3)';x.lineWidth=2;x.beginPath();x.roundRect(8,4,284,40,12);x.stroke();
+  x.fillStyle='#fff';x.font='bold 16px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(n,150,24);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));s.scale.set(10,2.5,1);return s}
 
 // ═══ ISLAND WITH PERLIN TERRAIN ═══
 function buildIsland(d){
@@ -350,7 +359,9 @@ function buildIsland(d){
   if(safe){const ring=new THREE.Mesh(new THREE.RingGeometry(d.r+8,d.r+14,32),new THREE.MeshBasicMaterial({color:0x2ecc71,transparent:true,opacity:0.15,side:2}));ring.rotation.x=-Math.PI/2;ring.position.y=0.2;g.add(ring)}
   g.position.set(d.x,0,d.z);scene.add(g);
 }
-function mkPalm(){const g=new THREE.Group();const h=5+Math.random()*3;g.add(M(new THREE.CylinderGeometry(.2,.4,h,5),0x8B6914,[0,h/2,0],[0,0,(Math.random()-.5)*.2]));for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;g.add(M(new THREE.ConeGeometry(2,3,3),0x228B22,[Math.cos(a)*1,h,Math.sin(a)*1],[Math.sin(a)*.6,0,Math.cos(a)*.6]))}return g}
+function mkPalm(){
+  if(window.glbPalm1||window.glbPalm2){const src=Math.random()>.5&&window.glbPalm2?window.glbPalm2:window.glbPalm1;if(src)return src.clone()}
+  const g=new THREE.Group();const h=5+Math.random()*3;g.add(M(new THREE.CylinderGeometry(.2,.4,h,5),0x8B6914,[0,h/2,0],[0,0,(Math.random()-.5)*.2]));for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;g.add(M(new THREE.ConeGeometry(2,3,3),0x228B22,[Math.cos(a)*1,h,Math.sin(a)*1],[Math.sin(a)*.6,0,Math.cos(a)*.6]))}return g}
 function buildRocks(){for(const o of ROCKS){const m=M(new THREE.SphereGeometry(o.r,5,4),0x666655,[o.x,3+o.r*.4,o.z]);m.scale.y=.5;scene.add(m)}}
 
 let houseMeshes=[];
@@ -391,6 +402,8 @@ function loadGLB(){if(glbLoading)return;glbLoading=true;
     L.load('/environment_house1.glb',g=>{glbHouses[0]=g.scene;glbHouses[0].scale.set(3,3,3);applyTex(glbHouses[0]);console.log('House1 GLB loaded')});
     L.load('/environment_house2.glb',g=>{glbHouses[1]=g.scene;glbHouses[1].scale.set(3,3,3);applyTex(glbHouses[1]);console.log('House2 GLB loaded')});
     L.load('/environment_house3.glb',g=>{glbHouses[2]=g.scene;glbHouses[2].scale.set(3,3,3);applyTex(glbHouses[2]);console.log('House3 GLB loaded')});
+    L.load('/environment_palmtree_1.glb',g=>{window.glbPalm1=g.scene;window.glbPalm1.scale.set(2,2,2);applyTex(window.glbPalm1);console.log('Palm1 GLB loaded')});
+    L.load('/environment_palmtree_2.glb',g=>{window.glbPalm2=g.scene;window.glbPalm2.scale.set(2,2,2);applyTex(window.glbPalm2);console.log('Palm2 GLB loaded')});
   }catch(e){console.log('GLTFLoader error:',e)}}
 function ensBoat(e,t){
   // Force re-create if GLB loaded after initial primitive creation
@@ -403,14 +416,20 @@ function ensBoat(e,t){
   scene.add(e.boat);e.bt=t}
 function rmEnt(id){const e=ents[id];if(!e)return;if(e.boat)scene.remove(e.boat);scene.remove(e.char);if(e.tag.parent)e.tag.parent.remove(e.tag);delete ents[id]}
 const cbG=new THREE.SphereGeometry(.5,5,4),cbMt=new THREE.MeshPhongMaterial({color:0x222});
-function getCB(i){while(cbPool.length<=i){const m=new THREE.Mesh(cbG,cbMt);m.visible=false;scene.add(m);cbPool.push(m)}return cbPool[i]}
+const trailMt=new THREE.SpriteMaterial({color:0xff6600,transparent:true,opacity:0.6});
+function getCB(i){while(cbPool.length<=i){
+  const g=new THREE.Group();
+  g.add(new THREE.Mesh(cbG,cbMt));
+  // Trail particles
+  for(let j=0;j<4;j++){const s=new THREE.Sprite(trailMt.clone());s.scale.set(.6-j*.1,.6-j*.1,1);s.position.z=-j*.8;s.material.opacity=0.5-j*0.1;g.add(s)}
+  g.visible=false;scene.add(g);cbPool.push(g)}return cbPool[i]}
 
 // ═══ MAIN LOOP ═══
 function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();const GS=getIS();if(!GS)return;
   if(ws?.readyState===1&&myId&&!panelOpen)send({t:'input',fwd:!!(keys['KeyW']||keys['ArrowUp']),back:!!(keys['KeyS']||keys['ArrowDown']),left:!!(keys['KeyA']||keys['ArrowLeft']),right:!!(keys['KeyD']||keys['ArrowRight']),act:!!keys['KeyE'],jump:!!keys['Space']});
   if(!freeLook){mv2.x=(mX/innerWidth)*2-1;mv2.y=-(mY/innerHeight)*2+1;ray.setFromCamera(mv2,camera);const h=new THREE.Vector3();if(ray.ray.intersectPlane(wP,h)){mW.x=h.x;mW.z=h.z;send({t:'aim',x:h.x,z:h.z})}}
   // Gentle water
-  const wp=water.geometry.attributes.position;for(let i=0;i<wp.count;i++){const x=wp.getX(i),y=wp.getY(i);wp.setZ(i,Math.sin(x*.008+t*.8)*.4+Math.sin(y*.01+t*.6)*.3)}wp.needsUpdate=true;water.geometry.computeVertexNormals();
+  const wp=water.geometry.attributes.position;for(let i=0;i<wp.count;i++){const x=wp.getX(i),y=wp.getY(i);wp.setZ(i,Math.sin(x*.006+t*.7)*.8+Math.sin(y*.008+t*.5)*.6+Math.sin(x*.015+y*.012+t*1.2)*.25)}wp.needsUpdate=true;water.geometry.computeVertexNormals();
   // Scroll water texture
   if(water.material.map){water.material.map.offset.x=t*0.005;water.material.map.offset.y=t*0.003}
 
@@ -420,9 +439,9 @@ function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime()
     const bobAmp=isWar?0.35:isTrade?0.25:0.15;const bobSpd=isWar?1.0:1.5;
     const rockAmt=isWar?0.035:isTrade?0.025:0.012;
     e.boat.position.set(p.bx,Math.sin(t*bobSpd+p.bx*.02)*bobAmp+.3+(sk>0?-sk*8:0),p.bz);
-    e.boat.rotation.y=p.br;
+    e.boat.rotation.y=p.br+Math.sin(t*0.6+p.bx*.02)*rockAmt*0.3*(Math.abs(p.bs)>0.1?1:0.1); // slight yaw when moving
     e.boat.rotation.z=(sk>0?sk*.4:0)+Math.sin(t*0.8+p.bz*.03)*rockAmt;
-    e.boat.rotation.x=Math.sin(t*1.1+p.bx*.03)*rockAmt*0.7;
+    e.boat.rotation.x=Math.sin(t*1.1+p.bx*.03)*rockAmt*0.8;
     const hpR=Math.max(0,p.hp)/(p.mhp||100);
     const sl=e.boat.getObjectByName('sail');if(sl){sl.scale.y+=(([.05,.5,1][p.sl||1])*Math.max(.1,hpR)-sl.scale.y)*.12}
     const s2=e.boat.getObjectByName('sail2');if(s2){s2.scale.y+=(([.05,.4,.9][p.sl||1])*Math.max(.1,hpR)-s2.scale.y)*.12}
@@ -447,13 +466,26 @@ function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime()
   if(me?.ob){aimRing.visible=true;aimRing.position.x=mW.x;aimRing.position.z=mW.z;
     if(SD[me.sh]?.cannons==='side'){for(let i=0;i<3;i++){dots[i].visible=true;const sp=(i-1)*8;dots[i].position.x=mW.x+Math.sin(me.br)*sp;dots[i].position.z=mW.z+Math.cos(me.br)*sp}}else dots.forEach(d=>d.visible=false)}
   else{aimRing.visible=false;dots.forEach(d=>d.visible=false)}
-  const cba=GS.cb||[];for(let i=0;i<cba.length;i++){const m=getCB(i);m.visible=true;m.position.set(cba[i].x,cba[i].y,cba[i].z)}for(let i=cba.length;i<cbPool.length;i++)cbPool[i].visible=false;
+  const cba=GS.cb||[];for(let i=0;i<cba.length;i++){const m=getCB(i);m.visible=true;m.position.set(cba[i].x,cba[i].y,cba[i].z);
+    // Orient trail behind direction of travel
+    if(m.userData.px!==undefined){const dx=cba[i].x-m.userData.px,dz=cba[i].z-m.userData.pz;if(Math.abs(dx)+Math.abs(dz)>0.1)m.rotation.y=Math.atan2(dx,dz)}
+    m.userData.px=cba[i].x;m.userData.pz=cba[i].z}
+  for(let i=cba.length;i<cbPool.length;i++)cbPool[i].visible=false;
   updateGI(GS.gi);
-  if(me&&ents[myId]){const e=ents[myId];let tgt,rot,cd,ch;
-    if(me.ob){tgt=e.boat.position;rot=e.boat.rotation.y;cd=45*camZoom;ch=20*camZoom}else{tgt=e.char.position;rot=e.char.rotation.y;cd=22*camZoom;ch=12*camZoom}
-    let cR=rot+flY,cP=flP-0.1; // -0.1 = slightly more forward-looking default
-    camera.position.x+=(tgt.x-Math.sin(cR)*cd-camera.position.x)*.07;camera.position.z+=(tgt.z-Math.cos(cR)*cd-camera.position.z)*.07;
-    camera.position.y+=(tgt.y+ch+cP*25-camera.position.y)*.07;camera.lookAt(tgt.x,tgt.y+2+cP*10,tgt.z)}
+  if(me&&ents[myId]){const e=ents[myId];let tgt,cd,ch;
+    if(me.ob){tgt=e.boat.position;cd=45*camZoom;ch=22*camZoom}
+    else{tgt=e.char.position;cd=22*camZoom;ch=14*camZoom}
+    // Camera orbit: right-click drag adjusts flY/flP, otherwise auto-follow behind movement direction
+    if(!freeLook&&me.ob){flY+=(0-flY)*0.03} // slowly reset on boat
+    const cR=(me.ob?e.boat.rotation.y:Math.atan2(mW.x-tgt.x,mW.z-tgt.z)+Math.PI)+flY;
+    const cP=Math.max(-0.2,Math.min(0.5,flP));
+    const cx=tgt.x-Math.sin(cR)*cd;
+    const cz=tgt.z-Math.cos(cR)*cd;
+    const cy=tgt.y+ch+cP*20;
+    camera.position.x+=(cx-camera.position.x)*0.08;
+    camera.position.z+=(cz-camera.position.z)*0.08;
+    camera.position.y+=(cy-camera.position.y)*0.08;
+    camera.lookAt(tgt.x,tgt.y+3,tgt.z)}
   // Critters
   updateCritters(t);
   updateHUD(GS);drawMM(GS);

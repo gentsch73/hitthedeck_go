@@ -152,6 +152,7 @@ type Player struct {
 	SkillSpeed int // ship speed bonus (0-5)
 	SkillHP    int // extra HP (0-5)
 	SkillPts   int // unspent skill points
+	EmbarkT    int64 // embark/disembark timer start
 }
 func (p *Player) Send(msg interface{}) {
 	p.mu.Lock(); defer p.mu.Unlock()
@@ -269,10 +270,11 @@ func (g *Game) tick() {
 					if name=="gold"{p.Gold+=qty;p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("+%dg loot!",qty)})} else {p.Cargo[name]+=qty}
 				} else {p.Inv[gi.Type]++}
 				g.items=append(g.items[:i],g.items[i+1:]...)}}
-			if inp.Act&&!p.ActP{p.ActP=true;shore:=nearShore(p.BX,p.BZ)
-				if shore!=nil{a:=math.Atan2(p.BX-shore.X,p.BZ-shore.Z);p.CX=shore.X+math.Sin(a)*(shore.R-6)
-					p.CZ=shore.Z+math.Cos(a)*(shore.R-6);p.CY=3;p.CR=a;p.OnBoat=false;p.Swim=false;p.Mining=false}}
-			if !inp.Act{p.ActP=false}
+			if inp.Act{shore:=nearShore(p.BX,p.BZ)
+				if shore!=nil{if p.EmbarkT==0{p.EmbarkT=n;p.Send(map[string]interface{}{"t":"msg","v":"Disembarking...3s"})} else if n-p.EmbarkT>=3000{
+					a:=math.Atan2(p.BX-shore.X,p.BZ-shore.Z);p.CX=shore.X+math.Sin(a)*(shore.R-6)
+					p.CZ=shore.Z+math.Cos(a)*(shore.R-6);p.CY=3;p.CR=a;p.OnBoat=false;p.Swim=false;p.Mining=false;p.EmbarkT=0}}
+			}else{p.EmbarkT=0}
 		}else{
 			// Character faces aim direction
 			p.CR=math.Atan2(p.AX-p.CX,p.AZ-p.CZ)
@@ -283,10 +285,15 @@ func (g *Game) tick() {
 			if inp.Left{mx+=math.Cos(p.CR)*WALK*0.8;mz-=math.Sin(p.CR)*WALK*0.8}
 			if inp.Right{mx-=math.Cos(p.CR)*WALK*0.8;mz+=math.Sin(p.CR)*WALK*0.8}
 			nx,nz:=p.CX+mx,p.CZ+mz
-			if ob:=hitRock(nx,nz,1);ob==nil{p.CX,p.CZ=nx,nz}else{
-				a:=math.Atan2(nx-ob.X,nz-ob.Z);p.CX=ob.X+math.Sin(a)*(ob.R+1.5);p.CZ=ob.Z+math.Cos(a)*(ob.R+1.5)}
-			if inp.Jump&&p.CY<=3.1&&!p.Swim{p.CVY=JUMP};p.CVY-=GRAV;p.CY+=p.CVY
-			land:=onLand(p.CX,p.CZ);gy:=-0.5;if land!=nil{gy=3};if p.CY<gy{p.CY=gy;p.CVY=0}
+			// Rock collision
+			if ob:=hitRock(nx,nz,1);ob!=nil{a:=math.Atan2(nx-ob.X,nz-ob.Z);nx=ob.X+math.Sin(a)*(ob.R+1.5);nz=ob.Z+math.Cos(a)*(ob.R+1.5)}
+			// House collision (radius 5)
+			for _,hs:=range houseSlots{if hs.Owner!=""&&hs.Type!=""{d:=math.Hypot(nx-hs.X,nz-hs.Z);if d<6{a:=math.Atan2(nx-hs.X,nz-hs.Z);nx=hs.X+math.Sin(a)*6;nz=hs.Z+math.Cos(a)*6}}}
+			p.CX,p.CZ=nx,nz
+			if inp.Jump&&p.CY<=3.2&&!p.Swim{p.CVY=JUMP};p.CVY-=GRAV;p.CY+=p.CVY
+			land:=onLand(p.CX,p.CZ);gy:=0.0;if land!=nil{gy=3.0};if p.CY<gy{p.CY=gy;p.CVY=0}
+			// Keep on island edge (don't clip through terrain)
+			if land!=nil{d:=math.Hypot(p.CX-land.X,p.CZ-land.Z);if d>land.R-2{a:=math.Atan2(p.CX-land.X,p.CZ-land.Z);p.CX=land.X+math.Sin(a)*(land.R-2);p.CZ=land.Z+math.Cos(a)*(land.R-2)}}
 			if land==nil{if !p.Swim{p.Swim=true;p.SwimT=n}
 				if !inSafe(p.CX,p.CZ)&&n-p.SwimT>DROWN{p.HP-=60;if p.HP<=0{g.respawn(p);p.Send(map[string]interface{}{"t":"sunk","by":"the sea"})}else{
 					p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0}}}else{p.Swim=false
@@ -299,12 +306,16 @@ func (g *Game) tick() {
 					if name=="gold"{p.Gold+=qty;p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("+%dg loot!",qty)})} else {p.Cargo[name]+=qty}
 				} else {p.Inv[gi.Type]++}
 				g.items=append(g.items[:i],g.items[i+1:]...)}}
-			if inp.Act&&!p.ActP{p.ActP=true
-				if math.Hypot(p.CX-p.BX,p.CZ-p.BZ)<EMBARK{p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0;p.Mining=false;p.Sails=0}else{
+			if inp.Act{
+				if math.Hypot(p.CX-p.BX,p.CZ-p.BZ)<EMBARK{
+					if p.EmbarkT==0{p.EmbarkT=n;p.Send(map[string]interface{}{"t":"msg","v":"Boarding...3s"})} else if n-p.EmbarkT>=3000{
+						p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0;p.Mining=false;p.Sails=0;p.EmbarkT=0}}else{
+					// Instant board other player's ship
 					for oid,op:=range g.players{if oid==p.ID||!op.Alive||op.Sinking>0{continue}
 						if math.Hypot(p.CX-op.BX,p.CZ-op.BZ)<EMBARK{if g.crewCount(oid)<Ships[op.Ship].Crew-1{
-							p.BoardedOn=oid;p.OnBoat=false;p.Swim=false;p.DX=0;p.DZ=0;p.CY=2.5;break}}}}}
-			if !inp.Act{p.ActP=false}
+							p.BoardedOn=oid;p.OnBoat=false;p.Swim=false;p.DX=0;p.DZ=0;p.CY=2.5;break}}}
+					p.EmbarkT=0}
+			}else{p.EmbarkT=0}
 		}
 	}
 	// Cannonballs
@@ -421,7 +432,8 @@ func (g *Game) handleWS(w http.ResponseWriter, r *http.Request) {
 			var sm struct{Good string;Qty,Idx int};json.Unmarshal(data,&sm)
 			if !p.OnBoat{var isl*Island;if sm.Idx==-1{isl=safeIsland}else if sm.Idx>=0&&sm.Idx<len(tradeIslands){isl=tradeIslands[sm.Idx]}
 				if isl!=nil{if ig,ok:=isl.Goods[sm.Good];ok{have:=p.Cargo[sm.Good];sell:=sm.Qty;if have<sell{sell=have};if sell<=0{break}
-					pr:=int(float64(ig.Price)*1.3);p.Gold+=sell*pr;p.Cargo[sm.Good]-=sell;if p.Cargo[sm.Good]<=0{delete(p.Cargo,sm.Good)}
+					pr:=int(float64(ig.Price)*0.7) // sell at 70% of local price (profit by buying cheap elsewhere)
+					p.Gold+=sell*pr;p.Cargo[sm.Good]-=sell;if p.Cargo[sm.Good]<=0{delete(p.Cargo,sm.Good)}
 					p.CargoUsed-=sell*Goods[sm.Good].Size;p.addXP(sell*3)
 					p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("Sold %d for %dg +%dxp",sell,sell*pr,sell*3)})}}}
 		case "sellOre":
