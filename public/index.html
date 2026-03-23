@@ -32,6 +32,7 @@
 #death{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;justify-content:center;align-items:center;z-index:100;flex-direction:column;color:#fff}
 #death h1{font-size:42px;color:#e74c3c}
 #conn-s{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);color:#f1c40f;padding:14px 24px;border-radius:10px;z-index:200;display:none;font-size:16px}
+.mbtn{width:44px;height:44px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:16px;font-weight:bold;cursor:pointer}
 #panel{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:150;display:none;justify-content:center;align-items:center}
 #panel-box{background:rgba(20,20,30,.96);border:2px solid rgba(241,196,15,.4);border-radius:12px;padding:20px 24px;color:#fff;min-width:520px;max-width:640px;max-height:80vh;overflow-y:auto;font-size:13px}
 #panel-box h2{color:#f1c40f;font-size:20px;margin-bottom:4px}#pgold{color:#f1c40f;margin-bottom:10px;font-size:14px}
@@ -45,6 +46,18 @@
 .trow{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px}
 .tabs{display:flex;gap:3px;margin-bottom:10px}.tab{padding:5px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px 5px 0 0;cursor:pointer;font-size:12px;color:#aaa}
 .tab.active{background:rgba(241,196,15,.15);color:#f1c40f;border-color:rgba(241,196,15,.3)}
+/* Mobile */
+#mob{display:none;position:fixed;z-index:20;inset:0;pointer-events:none}
+#mob>*{pointer-events:auto}
+#joyzone{position:absolute;bottom:30px;left:20px;width:140px;height:140px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:50%}
+#joystick{width:50px;height:50px;background:rgba(255,255,255,.3);border-radius:50%;position:absolute;left:45px;top:45px;transition:none}
+.mbtn{position:absolute;width:56px;height:56px;background:rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.2);border-radius:50%;color:#fff;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mbtn:active{background:rgba(241,196,15,.4)}
+#mb-fire{bottom:90px;right:20px;width:70px;height:70px;font-size:14px;background:rgba(231,76,60,.5);border-color:rgba(231,76,60,.6)}
+#mb-e{bottom:170px;right:20px}#mb-b{bottom:170px;right:84px}
+#mb-s1{bottom:30px;right:160px;font-size:10px}#mb-s2{bottom:30px;right:100px;font-size:10px}#mb-s3{bottom:30px;right:40px;font-size:10px;display:none}
+#mb-zoom-in{bottom:240px;right:20px;width:44px;height:44px;font-size:18px}#mb-zoom-out{bottom:240px;right:70px;width:44px;height:44px;font-size:18px}
+@media(max-width:800px),(pointer:coarse){#mob{display:block}#ctrl{display:none!important}#mm{width:120px!important;height:120px!important}}
 </style></head><body>
 <div id="overlay"><h2>KREW 3D</h2><div class="sub">Pirate MMO</div><div id="conn-msg">Connecting...</div>
 <input id="nin" placeholder="Pirate name..." maxlength="16"><button id="nbtn" disabled>Connecting...</button></div>
@@ -60,6 +73,30 @@
 <div id="inv" class="h"><h4>Inventory</h4><div id="inv-list"></div></div>
 <div id="cargo" class="h"><h4>Cargo</h4><div id="cargo-list"></div></div>
 <div id="death"><h1>SUNK!</h1><p id="dmsg"></p></div>
+<div id="mob">
+  <div id="joyzone"><div id="joystick"></div></div>
+  <div id="mb-fire" class="mbtn">FIRE</div>
+  <div id="mb-e" class="mbtn">E</div>
+  <div id="mb-b" class="mbtn">B</div>
+  <div id="mb-s1" class="mbtn">⚓</div>
+  <div id="mb-s2" class="mbtn">⛵</div>
+  <div id="mb-s3" class="mbtn">🚀</div>
+  <div id="mb-zoom-in" class="mbtn">+</div>
+  <div id="mb-zoom-out" class="mbtn">−</div>
+</div>
+<!-- Mobile Controls -->
+<div id="mob" style="display:none;position:fixed;z-index:20">
+  <div id="mj" style="position:fixed;bottom:100px;left:30px;width:120px;height:120px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);border-radius:50%">
+    <div id="mjk" style="width:44px;height:44px;background:rgba(255,255,255,.35);border-radius:50%;position:absolute;top:38px;left:38px"></div></div>
+  <button id="mfire" style="position:fixed;bottom:110px;right:30px;width:70px;height:70px;background:rgba(231,76,60,.5);border:2px solid rgba(231,76,60,.6);border-radius:50%;color:#fff;font-size:22px;font-weight:bold">🔥</button>
+  <button class="mbtn" onclick="send({t:'setSails',v:0})" style="position:fixed;bottom:200px;right:30px">⚓</button>
+  <button class="mbtn" onclick="send({t:'setSails',v:1})" style="position:fixed;bottom:200px;right:85px">⛵</button>
+  <button class="mbtn" onclick="send({t:'setSails',v:2})" style="position:fixed;bottom:200px;right:140px">🚀</button>
+  <button class="mbtn" onclick="keys.KeyE=true;setTimeout(()=>keys.KeyE=false,200)" style="position:fixed;bottom:30px;right:120px">E</button>
+  <button class="mbtn" onclick="togglePanel()" style="position:fixed;bottom:30px;right:30px">B</button>
+  <button class="mbtn" onclick="send({t:'mine'})" style="position:fixed;bottom:30px;right:210px">⛏</button>
+  <button class="mbtn" onclick="send({t:'deposit'})" style="position:fixed;bottom:30px;right:270px">📦</button>
+</div>
 <div id="panel"><div id="panel-box"><h2 id="ptitle">Menu</h2><div id="pgold"></div>
 <div class="tabs"><div class="tab active" data-tab="ships">Ships</div><div class="tab" data-tab="trade">Trade</div><div class="tab" data-tab="craft">Craft</div><div class="tab" data-tab="smuggle">Smuggle</div><div class="tab" data-tab="housing">Housing</div><div class="tab" data-tab="market">Market</div><div class="tab" data-tab="skills">Skills</div></div>
 <div id="tab-content"></div><div id="pmsg"></div><button id="pclose">Close [B]</button></div></div>
@@ -139,15 +176,15 @@ function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
 document.getElementById('nbtn').onclick=go;document.getElementById('nin').onkeydown=e=>{if(e.key==='Enter'&&!document.getElementById('nbtn').disabled)go()};
 function go(){document.getElementById('overlay').style.display='none';
   ['ctrl','gold','hp-w','sail','sb','mm','pc','lbl','cross','inv','cargo'].forEach(x=>document.getElementById(x).style.display='block');
-  playing=true;console.log('Starting game...');initThree();initSound();console.log('Three.js ready');send({t:'setName',v:document.getElementById('nin').value.trim()||'Pirate'});animate();console.log('Animate started')}
+  playing=true;console.log('Starting game...');initThree();initSound();initMobile();console.log('Three.js ready');send({t:'setName',v:document.getElementById('nin').value.trim()||'Pirate'});animate();console.log('Animate started')}
 
 function initThree(){
-  scene=new THREE.Scene();scene.fog=new THREE.Fog(0x4a8aaf,500,3000);
+  scene=new THREE.Scene();scene.fog=new THREE.Fog(0x7ab8cf,200,1800);
   camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,1,4000);
   if(window._sp){const s=window._sp;camera.position.set(s.x-Math.sin(s.r)*60,80,s.z-Math.cos(s.r)*60);camera.lookAt(s.x,5,s.z)}
   else{camera.position.set(700,80,700);camera.lookAt(0,0,0)}
   renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
-  renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setClearColor(0x6aafcf);
+  renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setClearColor(0x7ab8cf);
   document.body.appendChild(renderer.domElement);clock=new THREE.Clock();
   scene.add(new THREE.AmbientLight(0xffffff,.5));const sun=new THREE.DirectionalLight(0xfff0d0,1);sun.position.set(500,600,300);scene.add(sun);
   scene.add(new THREE.HemisphereLight(0x87ceeb,0x3a7a5a,.25));
@@ -164,12 +201,12 @@ function initThree(){
     if(e.code==='KeyB')togglePanel();if(e.code==='KeyF')send({t:'mine'});if(e.code==='KeyG')send({t:'deposit'});if(e.code==='Space')e.preventDefault()});
   window.addEventListener('keyup',e=>{keys[e.code]=false});window.addEventListener('blur',()=>{keys={};freeLook=false});
   window.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;if(freeLook){flY-=e.movementX*.003;flP=Math.max(-.3,Math.min(.6,flP-e.movementY*.003))}});
-  let lastFireT=0;
+  window._lft=window._lft||0;
   window.addEventListener('mousedown',e=>{if(e.button===0&&!panelOpen&&playing){
     const GS=getIS();const me=GS?.p[myId];
     if(me&&me.ob&&!me.sk){
       const sh=SD[me.sh];const reloadMs=sh?.reload||1200;
-      if(Date.now()-lastFireT>=reloadMs){lastFireT=Date.now();send({t:'fire'});playBoom()}
+      if(Date.now()-window._lft>=reloadMs){window._lft=Date.now();send({t:'fire'});playBoom()}
     }
   }if(e.button===2){freeLook=true;renderer.domElement.requestPointerLock?.()}});
   window.addEventListener('mouseup',e=>{if(e.button===2){freeLook=false;document.exitPointerLock?.()}}); // flY,flP persist!
@@ -334,9 +371,9 @@ function getEnt(id){if(!ents[id]){const me=id===myId,ch=mkChar(me);scene.add(ch)
 let glbRowboat=null,glbWarship=null,glbChar=null,glbLoading=false;
 function loadGLB(){if(glbLoading)return;glbLoading=true;
   try{const L=new THREE.GLTFLoader();
-    L.load('/ship_small.glb',g=>{glbRowboat=new THREE.Group();const m=g.scene;m.scale.set(2,2,2);m.rotation.y=Math.PI;glbRowboat.add(m);console.log('Rowboat GLB loaded')});
-    L.load('/ship_large.glb',g=>{glbWarship=new THREE.Group();const m=g.scene;m.scale.set(2.5,2.5,2.5);m.rotation.y=Math.PI;glbWarship.add(m);console.log('Warship GLB loaded')});
-    L.load('/characters_henry.glb',g=>{glbChar=g.scene;glbChar.scale.set(1.5,1.5,1.5);console.log('Character GLB loaded')});
+    L.load('/ship_small.glb',g=>{glbRowboat=new THREE.Group();const m=g.scene;m.scale.set(2,2,2);m.rotation.y=Math.PI/2;glbRowboat.add(m);console.log('Rowboat GLB loaded')});
+    L.load('/ship_large.glb',g=>{glbWarship=new THREE.Group();const m=g.scene;m.scale.set(2.5,2.5,2.5);m.rotation.y=Math.PI/2;glbWarship.add(m);console.log('Warship GLB loaded')});
+    L.load('/characters_henry.glb',g=>{glbChar=g.scene;glbChar.scale.set(1.5,1.5,1.5);console.log('Char GLB loaded')});
   }catch(e){console.log('GLTFLoader error:',e)}}
 function ensBoat(e,t){
   // Force re-create if GLB loaded after initial primitive creation
@@ -362,18 +399,21 @@ function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime()
 
   const act=new Set();
   for(const id in GS.p){act.add(id);const p=GS.p[id],e=getEnt(id),me=id===myId;ensBoat(e,p.sh);
-    const sk=p.sk||0;
-    e.boat.position.set(p.bx,Math.sin(t*1.5+p.bx*.03)*.15+.3+(sk>0?-sk*8:0),p.bz);
+    const sk=p.sk||0;const isWar=p.sh==='warship',isTrade=p.sh==='tradeship';
+    const bobAmp=isWar?0.35:isTrade?0.25:0.15;const bobSpd=isWar?1.0:1.5;
+    const rockAmt=isWar?0.035:isTrade?0.025:0.012;
+    e.boat.position.set(p.bx,Math.sin(t*bobSpd+p.bx*.02)*bobAmp+.3+(sk>0?-sk*8:0),p.bz);
     e.boat.rotation.y=p.br;
-    // VERY subtle tilt - almost none
-    e.boat.rotation.z=(sk>0?sk*.4:0);e.boat.rotation.x=Math.sin(t*1.2)*.008;
+    e.boat.rotation.z=(sk>0?sk*.4:0)+Math.sin(t*0.8+p.bz*.03)*rockAmt;
+    e.boat.rotation.x=Math.sin(t*1.1+p.bx*.03)*rockAmt*0.7;
     const hpR=Math.max(0,p.hp)/(p.mhp||100);
     const sl=e.boat.getObjectByName('sail');if(sl){sl.scale.y+=(([.05,.5,1][p.sl||1])*Math.max(.1,hpR)-sl.scale.y)*.12}
     const s2=e.boat.getObjectByName('sail2');if(s2){s2.scale.y+=(([.05,.4,.9][p.sl||1])*Math.max(.1,hpR)-s2.scale.y)*.12}
-    if(me&&p.ob){const br=e.boat.getObjectByName('barrel');if(br){const d=Math.hypot(mW.x-p.bx,mW.z-p.bz);br.rotation.x=Math.PI/2-Math.min(.5,d*.002)}}
     if(p.sh==='tradeship')updateBarrels(e.boat,p.cu);
-    if(p.ob&&!p.bo){e.char.position.set(p.bx+(SD[p.sh]?.cannons==='front'?Math.sin(p.br)*2:-Math.sin(p.br)*5),e.boat.position.y+2,p.bz+(SD[p.sh]?.cannons==='front'?Math.cos(p.br)*2:-Math.cos(p.br)*5));e.char.rotation.y=me?Math.atan2(mW.x-e.char.position.x,mW.z-e.char.position.z):p.br}
-    else if(p.bo){e.char.position.set(p.cx,2.5+e.boat.position.y,p.cz);e.char.rotation.y=p.cr}
+    // Character on own boat
+    const deckH=e.boat.position.y+(isWar?3.5:isTrade?2.5:1.5);
+    if(p.ob&&!p.bo){e.char.position.set(p.bx-Math.sin(p.br)*2,deckH,p.bz-Math.cos(p.br)*2);e.char.rotation.y=me?Math.atan2(mW.x-e.char.position.x,mW.z-e.char.position.z):p.br}
+    else if(p.bo){e.char.position.set(p.cx,deckH,p.cz);e.char.rotation.y=p.cr}
     else{e.char.position.set(p.cx,p.cy,p.cz);e.char.rotation.y=p.cr;
       // Walk animation only when moving
       const isMoving=Math.abs(p.cx-(e.pcx||p.cx))>0.01||Math.abs(p.cz-(e.pcz||p.cz))>0.01;
@@ -493,6 +533,52 @@ function updateCritters(t){
       }
     }
   }
+}
+
+// ═══ MOBILE CONTROLS ═══
+const isMob='ontouchstart' in window||navigator.maxTouchPoints>0;
+function initMobile(){
+  if(!isMob)return;
+  document.getElementById('mob').style.display='block';
+  document.getElementById('ctrl').style.display='none';
+  
+  // Joystick
+  const jpad=document.getElementById('joyzone'),jknob=document.getElementById('joystick');
+  let jActive=false,jCx=0,jCy=0;
+  jpad.addEventListener('touchstart',e=>{e.preventDefault();jActive=true;const r=jpad.getBoundingClientRect();jCx=r.left+70;jCy=r.top+70},{passive:false});
+  jpad.addEventListener('touchmove',e=>{e.preventDefault();if(!jActive)return;const t=e.touches[0];
+    let dx=t.clientX-jCx,dy=t.clientY-jCy;const d=Math.hypot(dx,dy);if(d>55){dx=dx/d*55;dy=dy/d*55}
+    jknob.style.left=(45+dx)+'px';jknob.style.top=(45+dy)+'px';
+    keys.KeyW=dy<-12;keys.KeyS=dy>12;keys.KeyA=dx<-12;keys.KeyD=dx>12},{passive:false});
+  jpad.addEventListener('touchend',()=>{jActive=false;jknob.style.left='45px';jknob.style.top='45px';keys.KeyW=keys.KeyS=keys.KeyA=keys.KeyD=false});
+
+  // Buttons
+  const btn=(id,fn)=>{const el=document.getElementById(id);if(el)el.addEventListener('touchstart',e=>{e.preventDefault();fn()},{passive:false})};
+  btn('mb-fire',()=>{const GS=getIS();const me=GS?.p[myId];if(me&&me.ob){const sh=SD[me.sh];const r=sh?.reload||1200;if(Date.now()-window._lft>=r){window._lft=Date.now();send({t:'fire'});playBoom()}}});
+  btn('mb-e',()=>{keys.KeyE=true;setTimeout(()=>{keys.KeyE=false},200)});
+  btn('mb-b',()=>togglePanel());
+  btn('mb-s1',()=>send({t:'setSails',v:0}));
+  btn('mb-s2',()=>send({t:'setSails',v:1}));
+  btn('mb-s3',()=>send({t:'setSails',v:2}));
+  btn('mb-zoom-in',()=>{camZoom=Math.max(0.5,camZoom-0.2)});
+  btn('mb-zoom-out',()=>{camZoom=Math.min(2.0,camZoom+0.2)});
+
+  // Show all sail buttons
+  document.getElementById('mb-s3').style.display='flex';
+
+  // Camera drag (swipe on canvas area)
+  let camTouch=null;
+  renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length===1){camTouch={x:e.touches[0].clientX,y:e.touches[0].clientY}}},{passive:true});
+  renderer.domElement.addEventListener('touchmove',e=>{if(camTouch&&e.touches.length===1){
+    const dx=e.touches[0].clientX-camTouch.x,dy=e.touches[0].clientY-camTouch.y;
+    flY-=dx*0.005;flP=Math.max(-.3,Math.min(.6,flP-dy*0.005));
+    camTouch={x:e.touches[0].clientX,y:e.touches[0].clientY}}},{passive:true});
+  renderer.domElement.addEventListener('touchend',()=>{camTouch=null});
+
+  // Auto-aim at center of screen for mobile
+  setInterval(()=>{if(playing&&!panelOpen){
+    mv2.x=0;mv2.y=0;ray.setFromCamera(mv2,camera);const h=new THREE.Vector3();
+    if(ray.ray.intersectPlane(wP,h)){mW.x=h.x;mW.z=h.z;send({t:'aim',x:h.x,z:h.z})}}},200);
 }
 
 </script></body></html>

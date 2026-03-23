@@ -15,7 +15,7 @@ import (
 
 const (
 	TICK=20; MAP=6000; WALK=0.7; JUMP=0.45; GRAV=0.035
-	DROWN=4000; EMBARK=20; SHORE=16; CB_LIFE=2500; CB_DMG=18; GOLD0=5000
+	DROWN=4000; EMBARK=20; SHORE=16; CB_LIFE=6000; CB_DMG=18; GOLD0=5000
 )
 
 // ── SHIPS ──
@@ -209,6 +209,8 @@ func (g *Game) fire(p *Player) {
 	dist:=math.Max(15,math.Min(baseRange,math.Hypot(dx,dz)))
 	if sh.Cannons=="front"{g.mkCB(p,p.BX+math.Sin(p.BR)*6,p.BZ+math.Cos(p.BR)*6,p.AX,p.AZ,dist)} else {
 		aim:=math.Atan2(dx,dz);rel:=aim-p.BR;for rel>math.Pi{rel-=math.Pi*2};for rel< -math.Pi{rel+=math.Pi*2}
+		absRel:=math.Abs(rel)
+		if absRel<0.44||absRel>2.7{return} // can't fire within 25° of bow or stern
 		side:=1.0;if rel<=0{side=-1.0};sa:=p.BR+side*math.Pi/2
 		for i:=0;i<sh.Count;i++{off:=float64(i-1)*4
 			ox:=p.BX+math.Sin(p.BR)*off+math.Sin(sa)*5;oz:=p.BZ+math.Cos(p.BR)*off+math.Cos(sa)*5
