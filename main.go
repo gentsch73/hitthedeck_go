@@ -30,21 +30,22 @@ var Ships = map[string]ShipDef{
 	"tradeship":{Name:"Trade Schooner",Price:1500,HP:130,Speed:0.75,Turn:0.032,Cannons:"front",Count:1,Reload:1000,Cargo:1000,Crew:3},
 }
 
-type GoodDef struct{ Name,Icon string; Size int }
+type GoodDef struct{ Name string `json:"name"`; Icon string `json:"icon"`; Size int `json:"size"` }
 var Goods = map[string]GoodDef{"coffee":{"Coffee","☕",15},"spice":{"Spice","🌶",20},"beer":{"Beer","🍺",30}}
 
-type OreDef struct{ Name,Icon string; Value int }
+type OreDef struct{ Name string `json:"name"`; Icon string `json:"icon"`; Value int `json:"value"` }
 var Ores = map[string]OreDef{"iron":{"Iron","⛏",50},"gold":{"Gold","🥇",150},"bronze":{"Bronze","🔶",80}}
 
 type Island struct {
-	X,Z,R float64; Name string; Goods map[string]*IGood `json:"goods,omitempty"`
+	X float64 `json:"x"`; Z float64 `json:"z"`; R float64 `json:"r"`
+	Name string `json:"name"`; Goods map[string]*IGood `json:"goods,omitempty"`
 	Ore string `json:"ore,omitempty"`; Safe bool `json:"safe,omitempty"`
 }
-type IGood struct{ Price,Stock int }
-type Rock struct{ X,Z,R float64 }
+type IGood struct{ Price int `json:"price"`; Stock int `json:"stock"` }
+type Rock struct{ X float64 `json:"x"`; Z float64 `json:"z"`; R float64 `json:"r"` }
 
 // Housing
-type HouseDef struct{ Name string; Price int; Tier int; StorageCap int }
+type HouseDef struct{ Name string `json:"name"`; Price int `json:"price"`; Tier int `json:"tier"`; StorageCap int `json:"storageCap"` }
 var HouseDefs = map[string]HouseDef{
 	"shack": {"Shack",500,1,200},
 	"house": {"House",2000,2,500},
@@ -151,11 +152,13 @@ func now() int64 { return time.Now().UnixMilli() }
 
 // State types
 type PState struct {
-	CX,CZ,CY,CR float64; BX,BZ,BR,BS float64
-	SL int; OB,SW bool; HP,MHP,SC,G int
-	N,SH string; AX,AZ float64
-	Cargo map[string]int; CU int; Inv map[string]int; MN bool
-	BO string; SK float64 // boardedOn, sinking
+	CX float64 `json:"cx"`; CZ float64 `json:"cz"`; CY float64 `json:"cy"`; CR float64 `json:"cr"`
+	BX float64 `json:"bx"`; BZ float64 `json:"bz"`; BR float64 `json:"br"`; BS float64 `json:"bs"`
+	SL int `json:"sl"`; OB bool `json:"ob"`; SW bool `json:"sw"`
+	HP int `json:"hp"`; MHP int `json:"mhp"`; SC int `json:"sc"`; G int `json:"g"`
+	N string `json:"n"`; SH string `json:"sh"`; AX float64 `json:"ax"`; AZ float64 `json:"az"`
+	Cargo map[string]int `json:"cargo"`; CU int `json:"cu"`; Inv map[string]int `json:"inv"`; MN bool `json:"mn"`
+	BO string `json:"bo"`; SK float64 `json:"sk"`
 }
 
 func (g *Game) buildState() map[string]interface{} {

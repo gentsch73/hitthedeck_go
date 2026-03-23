@@ -92,10 +92,10 @@ function getIS(){
   const t=Math.max(0,Math.min(1,(rt-s0.t)/dt)),out={t:rt,p:{},cb:s1.cb,gi:s1.gi,hs:s1.hs};
   for(const id of new Set([...Object.keys(s0.p),...Object.keys(s1.p)])){
     const a=s0.p[id],b=s1.p[id];if(!a){out.p[id]=b;continue}if(!b){out.p[id]=a;continue}
-    out.p[id]={bx:lerp(a.BX,b.BX,t),bz:lerp(a.BZ,b.BZ,t),br:lerpA(a.BR,b.BR,t),bs:lerp(a.BS,b.BS,t),
-      cx:lerp(a.CX,b.CX,t),cz:lerp(a.CZ,b.CZ,t),cy:lerp(a.CY,b.CY,t),cr:lerpA(a.CR,b.CR,t),
-      sl:b.SL,ob:b.OB,sw:b.SW,hp:b.HP,mhp:b.MHP,sc:b.SC,g:b.G,n:b.N,sh:b.SH,
-      cargo:b.Cargo,cu:b.CU,inv:b.Inv,mn:b.MN,bo:b.BO,sk:b.SK}}
+    out.p[id]={bx:lerp(a.bx,b.bx,t),bz:lerp(a.bz,b.bz,t),br:lerpA(a.br,b.br,t),bs:lerp(a.bs,b.bs,t),
+      cx:lerp(a.cx,b.cx,t),cz:lerp(a.cz,b.cz,t),cy:lerp(a.cy,b.cy,t),cr:lerpA(a.cr,b.cr,t),
+      sl:b.sl,ob:b.ob,sw:b.sw,hp:b.hp,mhp:b.mhp,sc:b.sc,g:b.g,n:b.n,sh:b.sh,
+      cargo:b.cargo,cu:b.cu,inv:b.inv,mn:b.mn,bo:b.bo,sk:b.sk}}
   return out;
 }
 function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
