@@ -106,6 +106,9 @@ var allIslands []*Island
 var rocks []Rock
 var houseSlots []*HouseSlot
 
+func findChar(s string,c byte)int{for i:=0;i<len(s);i++{if s[i]==c{return i}};return -1}
+func atoi(s string)int{v:=0;for _,c:=range s{if c>='0'&&c<='9'{v=v*10+int(c-'0')}};return v}
+
 func initWorld() {
 	allIslands = append(allIslands, safeIsland)
 	allIslands = append(allIslands, tradeIslands...)
@@ -260,15 +263,25 @@ func (g *Game) tick() {
 					// Transfer momentum
 					p.BS*=0.7;op.BS*=0.7}}
 			p.CX,p.CZ,p.CR=p.BX,p.BZ,p.BR;p.CY=2.0
+			// Boat pickup floating loot
+			for i:=len(g.items)-1;i>=0;i--{gi:=g.items[i];if math.Hypot(p.BX-gi.X,p.BZ-gi.Z)<15{
+				if idx:=findChar(gi.Type,'_');idx>0{name:=gi.Type[:idx];qty:=atoi(gi.Type[idx+1:])
+					if name=="gold"{p.Gold+=qty;p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("+%dg loot!",qty)})} else {p.Cargo[name]+=qty}
+				} else {p.Inv[gi.Type]++}
+				g.items=append(g.items[:i],g.items[i+1:]...)}}
 			if inp.Act&&!p.ActP{p.ActP=true;shore:=nearShore(p.BX,p.BZ)
 				if shore!=nil{a:=math.Atan2(p.BX-shore.X,p.BZ-shore.Z);p.CX=shore.X+math.Sin(a)*(shore.R-6)
 					p.CZ=shore.Z+math.Cos(a)*(shore.R-6);p.CY=3;p.CR=a;p.OnBoat=false;p.Swim=false;p.Mining=false}}
 			if !inp.Act{p.ActP=false}
 		}else{
-			if inp.Left{p.CR+=0.08};if inp.Right{p.CR-=0.08}
+			// Character faces aim direction
+			p.CR=math.Atan2(p.AX-p.CX,p.AZ-p.CZ)
+			// WASD relative to aim direction
 			var mx,mz float64
-			if inp.Fwd{mx=math.Sin(p.CR)*WALK;mz=math.Cos(p.CR)*WALK}
-			if inp.Back{mx=-math.Sin(p.CR)*WALK*0.5;mz=-math.Cos(p.CR)*WALK*0.5}
+			if inp.Fwd{mx+=math.Sin(p.CR)*WALK;mz+=math.Cos(p.CR)*WALK}
+			if inp.Back{mx-=math.Sin(p.CR)*WALK*0.6;mz-=math.Cos(p.CR)*WALK*0.6}
+			if inp.Left{mx+=math.Cos(p.CR)*WALK*0.8;mz-=math.Sin(p.CR)*WALK*0.8}
+			if inp.Right{mx-=math.Cos(p.CR)*WALK*0.8;mz+=math.Sin(p.CR)*WALK*0.8}
 			nx,nz:=p.CX+mx,p.CZ+mz
 			if ob:=hitRock(nx,nz,1);ob==nil{p.CX,p.CZ=nx,nz}else{
 				a:=math.Atan2(nx-ob.X,nz-ob.Z);p.CX=ob.X+math.Sin(a)*(ob.R+1.5);p.CZ=ob.Z+math.Cos(a)*(ob.R+1.5)}
@@ -279,8 +292,13 @@ func (g *Game) tick() {
 					p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0}}}else{p.Swim=false
 				if p.Mining&&p.MineT>0&&n-p.MineT>2000{p.Mining=false;a:=rand.Float64()*math.Pi*2;g.itemID++
 					g.items=append(g.items,GItem{g.itemID,p.CX+math.Cos(a)*3,p.CZ+math.Sin(a)*3,land.Ore})}}
-			for i:=len(g.items)-1;i>=0;i--{gi:=g.items[i];if math.Hypot(p.CX-gi.X,p.CZ-gi.Z)<3.5{
-				p.Inv[gi.Type]++;g.items=append(g.items[:i],g.items[i+1:]...)}}
+			for i:=len(g.items)-1;i>=0;i--{gi:=g.items[i];if math.Hypot(p.CX-gi.X,p.CZ-gi.Z)<4.5{
+				if idx:=findChar(gi.Type,'_');idx>0{
+					name:=gi.Type[:idx];qStr:=gi.Type[idx+1:]
+					qty:=atoi(qStr)
+					if name=="gold"{p.Gold+=qty;p.Send(map[string]interface{}{"t":"msg","v":fmt.Sprintf("+%dg loot!",qty)})} else {p.Cargo[name]+=qty}
+				} else {p.Inv[gi.Type]++}
+				g.items=append(g.items[:i],g.items[i+1:]...)}}
 			if inp.Act&&!p.ActP{p.ActP=true
 				if math.Hypot(p.CX-p.BX,p.CZ-p.BZ)<EMBARK{p.OnBoat=true;p.Swim=false;p.CX,p.CZ,p.CY=p.BX,p.BZ,0;p.Mining=false;p.Sails=0}else{
 					for oid,op:=range g.players{if oid==p.ID||!op.Alive||op.Sinking>0{continue}
@@ -295,11 +313,16 @@ func (g *Game) tick() {
 		for id,p:=range g.players{if id==c.Owner||!p.Alive||p.Sinking>0||inSafe(p.BX,p.BZ){continue}
 			if math.Hypot(c.X-p.BX,c.Z-p.BZ)<12{p.HP-=CB_DMG;g.cbs=append(g.cbs[:i],g.cbs[i+1:]...)
 				if p.HP<=0{p.Sinking=0.01;k:=g.players[c.Owner]
-					if k!=nil{k.Score++;k.Gold+=100+p.Wanted/2;k.Kills++;k.addXP(50) // bounty claim
-						// Drop some cargo as loot
+					if k!=nil{k.Score++;k.Gold+=100+p.Wanted/2;k.Kills++;k.addXP(50)
+						// Drop loot barrels
+						dropX:=p.BX;dropZ:=p.BZ
+						// Drop gold barrel
+						if p.Gold>50{dropGold:=p.Gold/4;p.Gold-=dropGold
+							g.itemID++;g.items=append(g.items,GItem{g.itemID,dropX+float64(rand.Intn(8)-4),dropZ+float64(rand.Intn(8)-4),fmt.Sprintf("gold_%d",dropGold)})}
+						// Drop cargo barrels
 						for item,qty:=range p.Cargo{if qty>0{drop:=qty/2;if drop<1{drop=1}
-							g.itemID++;g.items=append(g.items,GItem{g.itemID,p.BX+float64(rand.Intn(10)-5),p.BZ+float64(rand.Intn(10)-5),item})
-							p.Cargo[item]-=drop}}
+							g.itemID++;g.items=append(g.items,GItem{g.itemID,dropX+float64(rand.Intn(12)-6),dropZ+float64(rand.Intn(12)-6),item+"_"+fmt.Sprintf("%d",drop)})
+							p.Cargo[item]-=drop;if p.Cargo[item]<=0{delete(p.Cargo,item)}}}
 						p.Send(map[string]interface{}{"t":"sunk","by":k.Name})}
 					if p.Wanted>0{p.Wanted=p.Wanted/2} // halve bounty on death
 				}else if k:=g.players[c.Owner];k!=nil{k.Wanted+=5} // gain wanted for attacking
