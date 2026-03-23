@@ -310,17 +310,23 @@ let giM={};function updateGI(items){const act=new Set();for(const gi of(items||[
 function updateBarrels(boat,cu){if(!boat.userData.br)boat.userData.br=[];const n=Math.min(10,Math.floor((cu||0)/50));while(boat.userData.br.length<n){const b=M(new THREE.CylinderGeometry(.45,.45,.9,6),0x8B4513);boat.add(b);boat.userData.br.push(b)}while(boat.userData.br.length>n)boat.remove(boat.userData.br.pop());boat.userData.br.forEach((b,i)=>{b.position.set(-1+i%3*1,3.3,-1.5+Math.floor(i/3)*1.2)})}
 
 function getEnt(id){if(!ents[id]){const me=id===myId,ch=mkChar(me);scene.add(ch);const tg=mkTag('...',me);tg.position.y=6;ents[id]={boat:null,bt:null,char:ch,tag:tg,tn:'',to:null}}return ents[id]}
-let glbWarship=null,glbLoading=false;
-function loadGLB(){if(glbLoading||glbWarship)return;glbLoading=true;
+let glbRowboat=null,glbLoading=false;
+function loadGLB(){if(glbLoading||glbRowboat)return;glbLoading=true;
   try{const loader=new THREE.GLTFLoader();
-    loader.load('/ship_small.glb',gltf=>{glbWarship=gltf.scene;glbWarship.scale.set(2,2,2);console.log('GLB ship loaded')},
+    loader.load('/ship_small.glb',gltf=>{
+      glbRowboat=gltf.scene;
+      glbRowboat.scale.set(2,2,2);
+      glbRowboat.rotation.y=-Math.PI/2; // rotate so bow faces forward
+      console.log('GLB rowboat loaded')},
       undefined,err=>{console.log('GLB load failed, using primitives');glbLoading=false})}
   catch(e){console.log('GLTFLoader not available')}}
 function ensBoat(e,t){if(e.bt===t)return;if(e.boat)scene.remove(e.boat);
-  if(t==='warship'&&glbWarship){e.boat=glbWarship.clone();e.boat.traverse(c=>{if(c.isMesh)c.material=c.material.clone()})}
+  if(t==='rowboat'&&glbRowboat){
+    e.boat=new THREE.Group();
+    const clone=glbRowboat.clone();
+    e.boat.add(clone); // wrap in group so rotation.y on group controls heading
+  }
   else{e.boat=t==='warship'?mkWarship():t==='tradeship'?mkTrade():mkRowboat()}
-  // Add sail reference for warship glb
-  if(t==='warship'&&!e.boat.getObjectByName('sail')){const sl=M(new THREE.PlaneGeometry(6,8),0xe8dfc8,[0,13,-2]);sl.material.side=2;sl.material.transparent=true;sl.material.opacity=.85;sl.name='sail';e.boat.add(sl)}
   scene.add(e.boat);e.bt=t}
 function rmEnt(id){const e=ents[id];if(!e)return;if(e.boat)scene.remove(e.boat);scene.remove(e.char);if(e.tag.parent)e.tag.parent.remove(e.tag);delete ents[id]}
 const cbG=new THREE.SphereGeometry(.5,5,4),cbMt=new THREE.MeshPhongMaterial({color:0x222});
